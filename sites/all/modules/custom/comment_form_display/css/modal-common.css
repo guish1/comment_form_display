@@ -1,0 +1,133 @@
+/*loading*/
+.ctools-modal-dialog #modal-content .loading-spinner {
+    width: 0!important;
+    position: relative!important;
+    left: 50%!important;
+    margin:0!important;
+    margin-top: 50px!important;
+}
+.ctools-modal-dialog #modal-content .loading-spinner .progress-striped {
+    border-radius:0;
+    height: 50px;
+    width: 50px;
+    background:transparent;
+    box-shadow:none;
+}
+.ctools-modal-dialog #modal-content .loading-spinner .progress-striped .progress-bar {
+    border-radius: 50%;
+    height: 50px;
+    width: 50px;
+    background-color: crimson;
+}
+
+/* container */
+.ctools-modal-dialog .modal-content {
+    border-radius:0;
+}
+.ctools-modal-dialog .modal-body::-webkit-scrollbar {
+    width: 0.5em;
+}
+.ctools-modal-dialog .modal-body::-webkit-scrollbar-track {
+    border: 1px solid lightgrey;
+    border-top: 0;
+    border-bottom: 0;
+    box-shadow: none;
+}
+.ctools-modal-dialog .modal-body::-webkit-scrollbar-thumb {
+    background-color: grey;
+}
+
+/* title  */
+.ctools-modal-dialog .modal-header #modal-title {
+    letter-spacing: 2px;
+    font-weight: bold;
+    color:white;
+}
+.ctools-modal-dialog .modal-header .close {
+    color: white;
+    background: crimson;
+    padding: 5px;
+    border-radius: 50%;
+    height: 25px;
+    width: 25px;
+    font-size: inherit;
+    opacity: 1;
+}
+
+/* content */
+.ctools-modal-dialog #modal-content a.ckeditor_links {
+    padding:5px;
+    display:block;
+    color:black;
+}
+.ctools-modal-dialog #modal-content input,
+.ctools-modal-dialog #modal-content select {
+    border-radius:0;
+    float:inherit;
+    border: 0;
+    box-shadow: 0px 0px 1px 0px grey;
+    text-align: center;
+    padding: 6px 12px;
+}
+.ctools-modal-dialog #modal-content input:focus {
+    outline:none;
+}
+.ctools-modal-dialog #modal-content input.form-control {
+    width:inherit;
+}
+.ctools-modal-dialog #modal-content button[type="submit"] {
+    display: inline-block;
+    margin-top: 25px;
+    background: crimson;
+    text-transform: uppercase;
+    color: white;
+    font-weight: bold;
+    padding: 15px;
+    border: 0;
+    border-radius: 0;
+}
+.ctools-modal-dialog #modal-content button[type="submit"]:hover {
+    color: #333;
+    background-color: #e6e6e6;
+    text-decoration: none;
+    border-color: #e6e6e6;
+}
+
+/* ckeditor */
+.ctools-modal-dialog .cke_toolgroup {
+    float: left!important;
+    margin: 0 6px 5px 0!important;
+    border: 0!important;
+    box-shadow: none!important;
+    background: transparent!important;
+    background-image: none!important;
+}
+.ctools-modal-dialog .cke_top {
+    background: transparent!important;
+    background-image: none!important;
+}
+.ctools-modal-dialog .cke_bottom {
+    background: transparent!important;
+    background-image: none!important;
+}
+.ctools-modal-dialog a.cke_button_off:hover, 
+.ctools-modal-dialoga.cke_button_off:focus, 
+.ctools-modal-dialog a.cke_button_off:active, 
+.ctools-modal-dialog a.cke_button_disabled:hover, 
+.ctools-modal-dialog a.cke_button_disabled:focus,
+.ctools-modal-dialog a.cke_button_disabled:active, 
+.ctools-modal-dialog a.cke_path_item:hover, 
+.ctools-modal-dialog a.cke_path_item:focus, 
+.ctools-modal-dialog a.cke_path_item:active {
+    box-shadow: none!important;
+    background: #eee!important;
+    background-image: none!important;
+    text-shadow: none!important;
+    border-radius:0px !important;
+}
+.ctools-modal-dialog .rtejustify {
+    text-align:justify;
+}
+.ctools-modal-dialog .rtecenter {
+    text-align:center;
+}

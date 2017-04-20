@@ -1,0 +1,387 @@
+<?php 
+/*
+* Implements hook_init()
+*/
+function comment_form_display_init() {
+  $links = comment_form_display_links();
+  $modal = false;
+  
+  foreach ($links as $key => $l) {
+    // check which display is checked and call his own css/js
+    if (variable_get('config_form_display_display_mode_'.$l) == '1') {
+      if (!$modal) {
+        ctools_add_js('modal-common', 'comment_form_display');
+        ctools_add_css('modal-common', 'comment_form_display');
+        $modal = true;
+      }
+      ctools_add_js('modal-'.$l, 'comment_form_display');
+      ctools_add_css('modal-'.$l, 'comment_form_display');
+    }
+  }
+
+}
+/*
+* Implements hook_menu().
+*/
+
+function comment_form_display_menu() {
+  $items = array();
+  $links = comment_form_display_links();
+  $display_links = comment_form_display_links_display();
+  
+  $items['admin/config/content/comment-display'] = array(
+    'title' => 'Comment Form Display',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('comment_form_display_admin'),
+    'access arguments' => array('comment_form_display module'),
+    'access callback' => TRUE,
+    'file' => 'comment_form_display.admin.inc'
+  );  // create hook_menu for each links depending of widgets
+  foreach ($links as $key => $l) {
+    if (variable_get('config_form_display_display_mode_'.$l) == '1') {
+      $items[$display_links[$l]] = array(
+        'page callback' => 'comment_form_display_callback_modal',
+        'page arguments' => array(1, 2, 3),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+      );
+    }
+  }
+  /*$items['okok/nojs/%cid/%'] = array(
+        'page callback' => 'comment_form_display_modal',
+        'page arguments' => array(1, 2, 3),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+      );*/
+  
+  return $items;
+}
+
+/*
+* Menu callback
+*/
+function comment_form_display_modal() {
+  return drupal_get_form('comment_form_display_modal_form');
+}
+function comment_form_display_node() {
+  return '';
+}
+
+// widgets availables
+function comment_form_display_widget($t) {
+  $widgets = array('default', 'modal');
+  switch ($t) {
+    case true:
+      foreach ($widgets as $key => $result) {
+        $widgets[$key] = t($result);
+      }
+      break;
+  }
+  
+  return $widgets;
+}
+
+// comments' links
+function comment_form_display_links() {
+  $links = array(
+    0 => 'delete',
+    1 => 'edit',
+    2 => 'reply'
+  );
+  
+  return $links;
+}
+
+// comments' links display
+function comment_form_display_links_display() {
+  $links = comment_form_display_links();
+  $display_links = array();
+  foreach ($links as $key => $l) {
+    if (variable_get('config_form_display_display_mode_'.$l) == '1') {
+      $display_links[$l] = 'comment/ajax/%/'.$l;
+    } else {
+      switch ($l) {
+        case 'delete':
+        case 'edit':
+          $display_links[$l] = 'comment/%cid/'.$l;
+          break;
+        case 'reply':
+          $display_links[$l] = 'comment/'.$l.'/%nid/%cid';
+          break;
+      }
+    }
+  }
+  return $display_links;
+}
+
+/*
+* Form
+*/
+
+// MODAL DELETE
+function comment_form_display_modal_delete_form($form, $form_state) {
+  $comment = comment_load(arg(2));
+  $form = array();
+  $form['#comment_delete'] = $comment;
+  $form['cid'] = array(
+    '#type' => 'hidden',
+    '#default_value' => $comment->cid
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Delete'),
+  );
+  $form['#theme'][] = 'comment_form_display_modal_delete_form_template';
+  return $form; 
+}
+
+function comment_form_display_modal_delete_form_validate($form, &$form_state) {
+  $errors = array();
+  global $user;
+
+  $comment = comment_load($form_state['values']['cid']);
+  if ($comment->uid != $user->uid && !user_has_role(3)) {
+    $errors['cid'] = t('You must not delete this comment. (Access denied)');
+  }
+  foreach ($errors as $element => $messages) {
+    form_set_error($element, t($messages[0]));
+  }
+}
+
+function comment_form_display_modal_delete_form_submit($form, &$form_state) {
+  $cid = $form_state['values']['cid'];
+  comment_delete($cid);
+  
+  $form_state['ajax_commands'][] = ajax_command_remove('#comment-'.$cid);
+  $form_state['ajax_commands'][] = ajax_command_remove('[about*="/comment/'.$cid.'#comment-'.$cid.'"]');
+  $form_state['ajax_commands'][] = ajax_command_remove('#comment-post-comment-'.$cid);
+  $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
+}
+
+// MODAL EDIT
+function comment_form_display_modal_edit_form($form, $form_state) {
+  $comment = comment_load(arg(2));
+  $form = array();
+  $form['title'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Title'),
+      '#default_value' => $comment->subject,
+      '#attributes' => array(
+        'class' => array(
+          'text-center col-xs-12 col-sm-6'
+        )
+      )
+  );  
+  $form['cid'] = array(
+    '#type' => 'hidden',
+    '#default_value' => $comment->cid
+  );
+  $form['comment_body'] = array(
+    '#type' => 'text_format',
+    '#format' => 'basique_',
+    '#default_value' => $comment->comment_body[LANGUAGE_NONE][0]['value']
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+  $form['#theme'][] = 'comment_form_display_modal_edit_form_template';
+  return $form; 
+}
+
+function comment_form_display_modal_edit_form_validate($form, &$form_state) {
+  $errors = array();
+  global $user;
+  
+  if ($form_state['values']['title'] == '') {
+    $errors['titre'][] = t('Title cannot be empty.');
+  }
+  if ($form_state['values']['comment_body']['value'] == '') {
+    $errors['comment_body'] = t('Comment cannot be empty.');
+  }
+  $comment = comment_load($form_state['values']['cid']);
+  if ($comment->uid != $user->uid && !user_has_role(3)) {
+    $errors['cid'] = t('You must not modify this comment. (Access denied)');
+  }
+  foreach ($errors as $element => $messages) {
+    form_set_error($element, t($messages[0]));
+  }
+}
+
+function comment_form_display_modal_edit_form_submit($form, &$form_state) {
+  $user = user_load($comment->uid);
+  $comment = comment_load($form_state['values']['cid']);
+  $comment->comment_body[LANGUAGE_NONE][0]['value'] = $form_state['values']['comment_body']['value'];
+  $comment->comment_body[LANGUAGE_NONE][0]['format'] = $form_state['values']['comment_body']['format'];
+  $comment->subject = $form_state['values']['title'];
+  $comment->mail = $user->mail;
+  
+  comment_submit($comment);
+  comment_save($comment);
+  
+  $form_state['ajax_commands'][] = ajax_command_html('#comment-form-display-title-comment-'.$form_state['values']['cid'], $comment->subject);
+  $form_state['ajax_commands'][] = ajax_command_html('#comment-form-display-body-comment-'.$form_state['values']['cid'], $comment->comment_body[LANGUAGE_NONE][0]['value']);
+  $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
+}
+
+// MODAL REPLY
+function comment_form_display_modal_reply_form($form, $form_state) {
+  $comment = comment_load(arg(2));
+  $form = array();
+  $form['#comment_reply'] = $comment;
+  $form['#node'] = node_load($comment->nid);
+  $form['title'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Title'),
+      '#default_value' => '',
+      '#attributes' => array(
+        'class' => array(
+          'text-center col-xs-12 col-sm-6'
+        )
+      )
+  );  
+  $form['comment_body'] = array(
+    '#type' => 'text_format',
+    '#format' => 'basique_',
+    '#default_value' => ''
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+  $form['#theme'][] = 'comment_form_display_modal_reply_form_template';
+  return $form; 
+}
+
+function comment_form_display_modal_reply_form_validate($form, &$form_state) {
+  $errors = array();
+  global $user;
+  
+  if ($form_state['values']['title'] == '') {
+    $errors['titre'][] = t('Title cannot be empty.');
+  }
+  if ($form_state['values']['comment_body']['value'] == '') {
+    $errors['comment_body'] = t('Comment cannot be empty.');
+  }
+  foreach ($errors as $element => $messages) {
+    form_set_error($element, t($messages[0]));
+  }
+}
+
+function comment_form_display_modal_reply_form_submit($form, &$form_state) {
+  global $user;
+  $comment = comment_load(arg(2));
+
+  $new_comment = (object) array(
+    'nid' => $comment->nid,
+    'cid' => 0,
+    'pid' => $comment->cid,
+    'uid' => $user->uid,
+    'mail' => $user->mail,
+    'is_anonymous' => 0,
+    'homepage' => '',
+    'new' => t('new'),
+    'created' => time(),
+    'status' => COMMENT_PUBLISHED,
+    'subject' => $form_state['values']['title'],
+    'language' => LANGUAGE_NONE,
+    'comment_body' => array(
+      LANGUAGE_NONE => array(
+        0 => array (
+          'value' => $form_state['values']['comment_body']['value'],
+          'format' => $form_state['values']['comment_body']['format']
+        )
+      )
+    ),
+  );
+  
+  comment_submit($new_comment);
+  comment_save($new_comment);
+  
+  $comment_build = comment_view($new_comment, $new_comment->nid);
+  $comment_output = drupal_render($comment_build);
+  
+  $form_state['ajax_commands'][] = ajax_command_invoke('#comment-post-comment-'.$comment->cid, 'append', array($comment_output));
+  $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
+}
+
+/*
+* Preprocess
+*/
+
+function comment_form_display_preprocess_comment(&$vars) {
+  $links = comment_form_display_links();
+  $display_links = comment_form_display_links_display();
+
+  ctools_include('modal');
+  ctools_modal_add_js();
+  foreach ($links as $key => $result) {
+    if (variable_get('config_form_display_display_mode_'.$result) == '1') {
+      if (isset($vars['content']['links']['comment']['#links']['comment-'.$result]) && user_access('post comments')) {
+        $vars['content']['links']['comment']['#links']['comment-'.$result]['href'] = str_replace('%', $vars['comment']->cid, $display_links[$result]);
+        $vars['content']['links']['comment']['#links']['comment-'.$result]['attributes'] = array(
+            'rel' => 'nofollow',
+            'class' => 'ctools-use-modal'
+        );
+      }
+    }
+  } 
+}
+
+/* Theme */
+function comment_form_display_theme($existing, $type, $theme, $path){
+    return array(
+        'comment_form_display_modal_delete_form_template' => array(
+            'render element' => 'form',
+            'template' => 'form--comment_form_display_modal_delete',
+            'path' => $path . '/templates/modal',
+        ),
+        'comment_form_display_modal_edit_form_template' => array(
+            'render element' => 'form',
+            'template' => 'form--comment_form_display_modal_edit',
+            'path' => $path . '/templates/modal',
+        ),
+        'comment_form_display_modal_reply_form_template' => array(
+            'render element' => 'form',
+            'template' => 'form--comment_form_display_modal_reply',
+            'path' => $path . '/templates/modal',
+        )
+    );
+}
+
+/* Callback */
+function comment_form_display_callback_modal($ajax, $cid, $action) {
+  if (!$ajax) {
+    return drupal_get_form('comment_form_display_modal_'.$action.'_form');
+  }
+  
+  ctools_include('ajax');
+  ctools_include('modal');
+  switch ($action) {
+    case 'delete':
+      $title = t('Deleting a comment');
+      break;
+    case 'edit':
+      $title = t('Editing a comment');
+      break;
+    case 'reply':
+      $title = t('Replying a comment');
+      break;
+  }
+  $form_state = array(
+      'title' => $title,
+      'ajax' => TRUE,
+      '#attributes' => array(
+        'class' => array(
+          'edit'
+        )
+      )
+  );
+  $output = ctools_modal_form_wrapper('comment_form_display_modal_'.$action.'_form', $form_state);
+  if (!empty($form_state['ajax_commands'])) {
+      $output = $form_state['ajax_commands'];
+  }
+  
+  print ajax_render($output);
+  drupal_exit();
+}

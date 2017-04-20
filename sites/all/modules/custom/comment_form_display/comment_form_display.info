@@ -1,0 +1,6 @@
+name = Comment form display
+description = Manage how links Delete, Edit, Reply are displayed
+core = 7.x
+package = core
+dependencies[] = ctools
+configure = admin/config/content/comment-display

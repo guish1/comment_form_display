@@ -1,0 +1,94 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for Comment form display.
+ *
+ * @ingroup comment_form_display
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function comment_form_display_schema() {
+  $schema = array();
+  
+  $schema['config_form_display_display_mode'] = array(
+  'description' => '',
+    'fields' => array(
+      'entity_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'An entity ID.',
+      ),
+      'display_delete' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Display to comment delete link.',
+      ),
+      'display_edit' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Display to comment edit link.',
+      ),
+      'display_reply' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Display to comment reply link.',
+      ),
+    ),
+    'primary key' => array('entity_id'),
+  );
+  
+  if (db_table_exists('config_form_display_display_mode')) {
+    config_form_display_init();
+  }
+
+  return $schema;
+}
+
+function config_form_display_init() {
+  db_update('system')
+    ->fields(array('weight' => 1))
+    ->condition('type', 'module')
+    ->condition('name', 'config_form_display')
+    ->execute();
+  $select = db_select('config_form_display_display_mode', 'cfds')
+    ->fields('cfds')
+    ->execute();
+  if ($select->rowCount() == 0) {
+    db_insert('config_form_display_display_mode')
+      ->fields(array(
+          'display_delete' => 0,
+          'display_edit' => 0,
+          'display_reply' => 0
+        ))
+      ->execute();
+      
+    // put some default var
+    variable_set('config_form_display_display_mode_delete', 0);
+    variable_set('config_form_display_display_mode_edit', 0);
+    variable_set('config_form_display_display_mode_reply', 0);
+  }
+}
+
+
+/**
+ * Implements hook_install().
+ */
+function config_form_display_install() {
+  config_form_display_init();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function config_form_display_uninstall() {
+  // Delete all the config_form_display variables and then clear the variable cache.
+  db_query("DELETE FROM {variable} WHERE name LIKE 'config_form_display%'");
+  cache_clear_all('variables', 'cache');
+}
